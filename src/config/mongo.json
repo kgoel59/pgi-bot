@@ -1,0 +1,5 @@
+{
+    "db_conn": "mongodb://karan:DSdTYrCxoI9G48IxfODpohUPtT3ClAXMF8gqFjRG44qBPfnIx9Ubjkyg6z4O1CeObHA393mlMmI3DXPZ0l9Uog==@karan.documents.azure.com:10255/pgibot?ssl=true&replicaSet=globaldb",
+    "db_user": "karan",
+    "db_pass": "DSdTYrCxoI9G48IxfODpohUPtT3ClAXMF8gqFjRG44qBPfnIx9Ubjkyg6z4O1CeObHA393mlMmI3DXPZ0l9Uog=="
+}
