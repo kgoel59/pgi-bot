@@ -1,38 +1,18 @@
-import bodyParser from 'body-parser';
-import crypto from 'crypto';
 import dialogflow from 'dialogflow';
-import { Application } from 'express';
-import { IncomingMessage, ServerResponse } from 'http';
+import uuid from 'uuid';
 import googlekey from '../config/dialog.json';
-import fbkey from '../config/fb.json';
-import { IMessaging } from '../types/IFacebookEvent';
 
-const LANGUAGE_CODE = 'en-US';
-
-
-export interface IDialogflowApp {
-    verifyWebHook: (mode: string, verifytoken: string) => boolean;
-    receivedAuthentication: (messagingEvent: IMessaging) => void;
-    receivedMessage: (messagingEvent: IMessaging) => void;
-    receivedDeliveryConfirmation: (messagingEvent: IMessaging) => void;
-    receivedPostback: (messagingEvent: IMessaging) => void;
-    receivedMessageRead: (messagingEvent: IMessaging) => void;
-    receivedAccountLink: (messagingEvent: IMessaging) => void;
-}
-
+import { IDialogflowApp } from '../types/IDialogflowApp';
 
 
 class DialogflowController implements IDialogflowApp {
 
-    private sessionIds: Map<any, any>;
+    public languageCode = 'en-US';
+    public sessionIds: Map<string, string>;
     private credentials: dialogflow.Credentials;
     private sessionClient: dialogflow.SessionsClient;
 
-    constructor(express: Application) {
-        express.use(bodyParser.json({
-            verify: this.verifyRequestSignature,
-        }));
-
+    constructor() {
         this.credentials = {
             client_email: googlekey.client_email,
             private_key: googlekey.private_key,
@@ -46,60 +26,38 @@ class DialogflowController implements IDialogflowApp {
         this.sessionIds = new Map();
     }
 
-    // For facebook webhook verification
-    public verifyWebHook(mode: string, verifytoken: string): boolean {
-        if (mode === 'subscribe' && verifytoken === fbkey.fb_verify_token) {
-            return true;
+    public async sendToDialogflow(senderID: string, messageText: string, params?: string)
+    : Promise<dialogflow.QueryResult> {
+
+        if (!this.sessionIds.has(senderID)) {
+            this.sessionIds.set(senderID, uuid.v1());
         }
-        return false;
-    }
 
-    public receivedAuthentication(messagingEvent: IMessaging) {
-        //
-    }
+        const sessionPath = this.sessionClient.sessionPath(
+            googlekey.project_id,
+            this.sessionIds.get(senderID),
+        );
 
-    public receivedMessage(messagingEvent: IMessaging) {
-        //
-    }
-
-    public receivedDeliveryConfirmation(messagingEvent: IMessaging) {
-        //
-    }
-
-    public receivedPostback(messagingEvent: IMessaging) {
-        //
-    }
-
-    public receivedMessageRead(messagingEvent: IMessaging) {
-        //
-    }
-
-    public receivedAccountLink(messagingEvent: IMessaging) {
-        //
-    }
-
-    // Verify message is from facebook app
-    private verifyRequestSignature(req: IncomingMessage, res: ServerResponse, buf: Buffer) {
-        const signature = req.headers['x-hub-signature'].toString();
-
-        if (!signature) {
-            throw new Error('Couldn\'t validate the signature.');
-        } else {
-            const elements = signature.split('=');
-            const method = elements[0];
-            const signatureHash = elements[1];
-
-            const expectedHash = crypto.createHmac('sha1', fbkey.fb_app_secret)
-                .update(buf)
-                .digest('hex');
-
-            if (signatureHash !== expectedHash) {
-                throw new Error("Couldn't validate the request signature.");
-            }
-        }
+        const request: dialogflow.DetectIntentRequest = {
+            session: sessionPath,
+            queryInput: {
+                text: {
+                    text: messageText,
+                    languageCode: this.languageCode,
+                },
+            },
+            queryParams: {
+                payload: {
+                    data: params,
+                },
+            },
+        };
+        return this.sessionClient.detectIntent(request)
+        .then((responses: dialogflow.DetectIntentResponse[]) => {
+            return responses[0].queryResult;
+        });
     }
 }
 
 
-
-export default (express: Application) => new DialogflowController(express);
+export default new DialogflowController();

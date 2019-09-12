@@ -2,14 +2,17 @@ import bodyParser from 'body-parser';
 import app from './app';
 import chatRoutes from './routes/chat.routes';
 
-import mongo from './config/mongo.json';
-import DialogflowController, { IDialogflowApp } from './controllers/dialogflow.controller';
+import chatBot from './controllers/chatbot.controller';
+import dialogflowApp from './controllers/dialogflow.controller';
+import messengerApp from './controllers/messenger.controller';
 
-const dialogflowApp: IDialogflowApp = DialogflowController(app.express);
+import mongo from './config/mongo.json';
 
 app.express.use(bodyParser.json());
 app.express.use(bodyParser.urlencoded({ extended: true })); // for parsing form data
 
 app.connectDB(mongo.db_conn, mongo.db_user, mongo.db_pass);
-app.mountDialogflow(chatRoutes, dialogflowApp);
+
+const bot = chatBot(app.express, dialogflowApp, messengerApp);
+app.mountChatBot(chatRoutes, bot);
 app.start(5000);

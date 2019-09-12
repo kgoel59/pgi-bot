@@ -1,5 +1,6 @@
 import express, { Application, Router } from 'express';
-import { IDialogflowApp } from './controllers/dialogflow.controller';
+import { IChatBot } from './types/IChatBot';
+
 import connect from './mongoDB/connect';
 import errorHandler from './routes/errorHandler';
 import params from './routes/params';
@@ -23,9 +24,8 @@ class App {
         routes(this.router);
     }
 
-    public mountDialogflow(routes: (router: Router, dialogflowApp: IDialogflowApp) => void,
-                           dialogflowApp: IDialogflowApp) {
-        routes(this.router, dialogflowApp);
+    public mountChatBot(routes: (router: Router, bot: IChatBot) => void, bot: IChatBot) {
+        routes(this.router, bot);
     }
 
     public start(port: string | number| null) {
