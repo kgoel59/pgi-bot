@@ -5,21 +5,26 @@ import { Application } from 'express';
 import { IncomingMessage, ServerResponse } from 'http';
 import googlekey from '../config/dialog.json';
 import fbkey from '../config/fb.json';
+import { IMessaging } from '../types/IFacebookEvent';
 
 const LANGUAGE_CODE = 'en-US';
 
 
 export interface IDialogflowApp {
-    sessionIds: Map<any, any>;
     verifyWebHook: (mode: string, verifytoken: string) => boolean;
+    receivedAuthentication: (messagingEvent: IMessaging) => void;
+    receivedMessage: (messagingEvent: IMessaging) => void;
+    receivedDeliveryConfirmation: (messagingEvent: IMessaging) => void;
+    receivedPostback: (messagingEvent: IMessaging) => void;
+    receivedMessageRead: (messagingEvent: IMessaging) => void;
+    receivedAccountLink: (messagingEvent: IMessaging) => void;
 }
 
 
 
 class DialogflowController implements IDialogflowApp {
 
-    public sessionIds: Map<any, any>;
-
+    private sessionIds: Map<any, any>;
     private credentials: dialogflow.Credentials;
     private sessionClient: dialogflow.SessionsClient;
 
@@ -43,10 +48,34 @@ class DialogflowController implements IDialogflowApp {
 
     // For facebook webhook verification
     public verifyWebHook(mode: string, verifytoken: string): boolean {
-        if ( mode === 'subscribe' && verifytoken === fbkey.fb_verify_token) {
+        if (mode === 'subscribe' && verifytoken === fbkey.fb_verify_token) {
             return true;
         }
         return false;
+    }
+
+    public receivedAuthentication(messagingEvent: IMessaging) {
+        //
+    }
+
+    public receivedMessage(messagingEvent: IMessaging) {
+        //
+    }
+
+    public receivedDeliveryConfirmation(messagingEvent: IMessaging) {
+        //
+    }
+
+    public receivedPostback(messagingEvent: IMessaging) {
+        //
+    }
+
+    public receivedMessageRead(messagingEvent: IMessaging) {
+        //
+    }
+
+    public receivedAccountLink(messagingEvent: IMessaging) {
+        //
     }
 
     // Verify message is from facebook app
@@ -73,4 +102,4 @@ class DialogflowController implements IDialogflowApp {
 
 
 
-export default ( express: Application ) => new DialogflowController(express);
+export default (express: Application) => new DialogflowController(express);
