@@ -10,7 +10,7 @@ export interface IMessengerApp {
     sendAudioMessage: (recipientId: string, audioUrl: string) => void;
     sendVideoMessage: (recipientId: string, videoUrl: string) => void;
     sendFileMessage: (recipientId: string, fileUrl: string) => void;
-    sendQuickReply: (recipientId: string, text: string, replies: ISQuickReply[], metadata: string) => void;
+    sendQuickReply: (recipientId: string, text: string, replies: ISQuickReply[], metadata?: string) => void;
     sendTypingOn: (recipientId: string) => void;
     sendTypingOff: (recipientId: string) => void;
 }

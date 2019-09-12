@@ -1,10 +1,12 @@
 import bodyParser from 'body-parser';
-import { QueryResult } from 'dialogflow';
+import { Message, QueryResult } from 'dialogflow';
 import { Application } from 'express';
 import { IChatBot } from '../types/IChatBot';
 import { IDialogflowApp } from '../types/IDialogflowApp';
 import { IMessengerApp } from '../types/IMessengerApp';
 import { IEMessaging } from '../types/IMessengerEvent';
+import { ISQuickReply } from '../types/IMessengerSend';
+
 
 class ChatBotController implements IChatBot {
 
@@ -73,13 +75,53 @@ class ChatBotController implements IChatBot {
         const parameters = response.parameters;
 
         this.messengerApp.sendTypingOff(senderID);
-
-        if (responseText !== undefined) {
+        if (messages !== undefined) {
+            this.handleMessages(senderID, messages);
+        } else if (responseText !== undefined) {
             this.messengerApp.sendTextMessage(senderID, responseText);
+        }
+    }
+
+    private handleMessages(senderID: string, messages: Message[]) {
+        const timeoutInterval = 1100;
+        let timeout = 0;
+
+        for (let i = 0; i < messages.length; i++) {
+            timeout = i * timeoutInterval;
+            setTimeout(() => {
+                this.handleMessage(senderID, messages[i]);
+            }, timeout);
+        }
+    }
+
+    private handleMessage(senderID: string, message: Message) {
+        switch (message.message) {
+            case 'text': // text
+                message.text.text.forEach((text) => {
+                    if (text !== '') {
+                        this.messengerApp.sendTextMessage(senderID, text);
+                    }
+                });
+                break;
+            case 'quickReplies': // quick replies
+                const replies: ISQuickReply[] = new Array();
+                message.quickReplies.quickReplies.forEach((text) => {
+                    const reply = {
+                        content_type: 'text',
+                        title: text,
+                        payload: text,
+                    };
+                    replies.push(reply);
+                });
+                this.messengerApp.sendQuickReply(senderID, message.quickReplies.title, replies);
+                break;
+            case 'image': // image
+                this.messengerApp.sendImageMessage(senderID, message.image.imageUri);
+                break;
         }
     }
 }
 
-export  default (express: Application,
-                 dialogflowApp: IDialogflowApp,
-                 messengerApp: IMessengerApp) => new ChatBotController(express, dialogflowApp, messengerApp);
+export default (express: Application,
+                dialogflowApp: IDialogflowApp,
+                messengerApp: IMessengerApp) => new ChatBotController(express, dialogflowApp, messengerApp);

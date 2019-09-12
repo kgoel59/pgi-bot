@@ -119,7 +119,7 @@ class MessengerController implements IMessengerApp {
         this.callSendAPI(messageData);
     }
 
-    public sendQuickReply(recipientId: string, text: string, replies: ISQuickReply[], metadata: string) {
+    public sendQuickReply(recipientId: string, text: string, replies: ISQuickReply[], metadata?: string) {
         const messageData = {
             recipient: {
                 id: recipientId,

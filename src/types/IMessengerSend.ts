@@ -6,7 +6,7 @@ export interface ISQuickReply {
     content_type: string;
     title: string;
     payload: string | number;
-    image_url: string;       // 24 X 24
+    image_url?: string;       // 24 X 24
 }
 
 
