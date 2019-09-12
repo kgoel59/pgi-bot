@@ -1,4 +1,5 @@
 import express, { Application, Router } from 'express';
+import { IDialogflowApp } from './controllers/dialogflow.controller';
 import connect from './mongoDB/connect';
 import errorHandler from './routes/errorHandler';
 import params from './routes/params';
@@ -20,6 +21,11 @@ class App {
 
     public mountRoutes(routes: (router: Router) => void): void {
         routes(this.router);
+    }
+
+    public mountDialogflow(routes: (router: Router, dialogflowApp: IDialogflowApp) => void,
+                           dialogflowApp: IDialogflowApp) {
+        routes(this.router, dialogflowApp);
     }
 
     public start(port: string | number| null) {
