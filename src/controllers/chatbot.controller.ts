@@ -7,7 +7,7 @@ import { IChatBot } from '../types/IChatBot';
 import { IDialogflowApp } from '../types/IDialogflowApp';
 import { IMessengerApp } from '../types/IMessengerApp';
 import { IEAttachment, IEMessaging, IEQuickReply } from '../types/IMessengerEvent';
-import { ISButton, ISQuickReply } from '../types/IMessengerSend';
+import { ISButton, ISElement, ISQuickReply } from '../types/IMessengerSend';
 
 
 class ChatBotController implements IChatBot {
@@ -84,7 +84,6 @@ class ChatBotController implements IChatBot {
     }
 
     private handleDialogflowResponse(senderID: string, response: QueryResult) {
-        console.log(response.fulfillmentMessages);
         const responseText = response.fulfillmentText;
 
         const messages = response.fulfillmentMessages;
@@ -113,25 +112,19 @@ class ChatBotController implements IChatBot {
         for (let i = 0; i < messages.length; i++) {
             if (prevType === 'card' && (messages[i].message !== 'card' || i === messages.length - 1)) {
                 timeout = (i - 1) * timeoutInterval;
-                setTimeout(() => {
-                    this.handleCardMessages(senderID, cards);
-                }, timeout);
+                setTimeout(this.handleCardMessages.bind(this, senderID, cards), timeout);
                 cards = [];
                 timeout = (i) * timeoutInterval;
             }  else if (messages[i].message === 'card' && i === messages.length - 1) {
                 cards.push(messages[i]);
                 timeout = (i - 1) * timeoutInterval;
-                setTimeout(() => {
-                    this.handleCardMessages(senderID, cards);
-                }, timeout);
+                setTimeout(this.handleCardMessages.bind(this, senderID, cards), timeout);
                 cards = [];
             } else if ( messages[i].message === 'card') {
                 cards.push(messages[i]);
             } else {
                 timeout = i * timeoutInterval;
-                setTimeout(() => {
-                    this.handleMessage(senderID, messages[i]);
-                }, timeout);
+                setTimeout(this.handleMessage.bind(this, senderID, messages[i]), timeout);
             }
             prevType =  messages[i].message;
         }
@@ -166,7 +159,7 @@ class ChatBotController implements IChatBot {
     }
 
     private handleCardMessages(senderID: string, messages: CardMessage[]) {
-        const elements = [];
+        const elements: ISElement[] = new Array();
         for (const message of messages) {
             const buttons: ISButton[] = new Array();
 

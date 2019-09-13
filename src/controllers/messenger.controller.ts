@@ -176,7 +176,6 @@ class MessengerController implements IMessengerApp {
     }
 
     public callSendAPI(messageData: ISend) {
-        console.log(messageData);
         request({
             uri: 'https://graph.facebook.com/v3.2/me/messages',
             qs: {
