@@ -9,9 +9,25 @@ export interface ISQuickReply {
     image_url?: string;       // 24 X 24
 }
 
+export interface ISButton {
+    type: string;
+    title: string;
+    payload?: string;
+    url?: string;
+}
+
+export interface ISElement {
+    title: string;
+    subtitle?: string;
+    image_url?: string;
+    default_action?: any;
+    buttons?: ISButton[];
+}
 
 export interface ISPayload {
-    url: string;
+    url?: string;
+    image_aspect_ratio?: string;
+    elements?: ISElement[];
 }
 
 export interface ISAttachment {

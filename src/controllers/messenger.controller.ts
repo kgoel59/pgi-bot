@@ -4,7 +4,7 @@ import fbkey from '../config/messenger.json';
 
 import { IncomingMessage, ServerResponse } from 'http';
 import { IMessengerApp } from '../types/IMessengerApp';
-import { ISend, ISQuickReply } from '../types/IMessengerSend';
+import { ISElement, ISend, ISQuickReply } from '../types/IMessengerSend';
 
 class MessengerController implements IMessengerApp {
 
@@ -119,6 +119,25 @@ class MessengerController implements IMessengerApp {
         this.callSendAPI(messageData);
     }
 
+    public sendGenericMessage(recipientId: string, elements: ISElement[]) {
+        const messageData = {
+            recipient: {
+                id: recipientId,
+            },
+            message: {
+                attachment: {
+                    type: 'template',
+                    payload: {
+                        template_type: 'generic',
+                        elements,
+                    },
+                },
+            },
+        };
+
+        this.callSendAPI(messageData);
+    }
+
     public sendQuickReply(recipientId: string, text: string, replies: ISQuickReply[], metadata?: string) {
         const messageData = {
             recipient: {
@@ -157,6 +176,7 @@ class MessengerController implements IMessengerApp {
     }
 
     public callSendAPI(messageData: ISend) {
+        console.log(messageData);
         request({
             uri: 'https://graph.facebook.com/v3.2/me/messages',
             qs: {

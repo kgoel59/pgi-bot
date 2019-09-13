@@ -55,6 +55,9 @@ class DialogflowController implements IDialogflowApp {
         return this.sessionClient.detectIntent(request)
         .then((responses: dialogflow.DetectIntentResponse[]) => {
             return responses[0].queryResult;
+        })
+        .catch((err) => {
+            throw err;
         });
     }
 }
