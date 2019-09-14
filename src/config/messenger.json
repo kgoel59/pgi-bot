@@ -1,5 +1,6 @@
 {
     "fb_page_token": "EAAMGrQDA7XMBAFWoWesMA6klcGhe9jrJHy6nYWsAJeWNTAwJrLdoyRInEZAUG2hytvRFvfKZAsjfMWBRFT1XaUTstMqJnmADO2gB5ESXhPncTmsSaY7R0ZCttKHuO5JKZCw5OurWAcHldZCGHlTdj1X01Fe6ZBNJSoa8Lkd2fxcd80GoIEJvtY",
     "fb_verify_token": "Thisismyverifytokenforpgibottest",
-    "fb_app_secret": "cf26838ad85a7f27d96d2e9c7e77c6bf"
+    "fb_app_secret": "cf26838ad85a7f27d96d2e9c7e77c6bf",
+    "server_url": "https://pgi-bot.herokuapp.com"
 }

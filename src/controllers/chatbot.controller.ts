@@ -25,7 +25,24 @@ class ChatBotController implements IChatBot {
     }
 
     public async receivedAuthentication(event: IEMessaging) {
-        //
+        const senderID = event.sender.id;
+        const recipientID = event.recipient.id;
+        const timeOfAuth = event.timestamp;
+
+        // The 'ref' field is set in the 'Send to Messenger' plugin, in the 'data-ref'
+        // The developer can set this to an arbitrary value to associate the
+        // authentication callback with the 'Send to Messenger' click event. This is
+        // a way to do account linking when the user clicks the 'Send to Messenger'
+        // plugin.
+        const passThroughParam = event.optin.ref;
+
+        console.log('Received authentication for user %d and page %d with pass ' +
+            "through param '%s' at %d", senderID, recipientID, passThroughParam,
+            timeOfAuth);
+
+        // When an authentication is received, we'll send a message back to the sender
+        // to let them know it was successful.
+        this.messengerApp.sendTextMessage(senderID, 'Authentication successful');
     }
 
     public async receivedMessage(event: IEMessaging) {
@@ -43,6 +60,11 @@ class ChatBotController implements IChatBot {
         const messageText = message.text;
         const messageAttachments = message.attachments;
         const quickReply = message.quick_reply;
+
+        if (!this.messengerApp.users.has(senderID)) {
+            const user = await this.messengerApp.getUser(senderID);
+            this.messengerApp.users.set(senderID, user);
+        }
 
         if (isEcho) {
             // handle echo
@@ -68,19 +90,63 @@ class ChatBotController implements IChatBot {
     }
 
     public async receivedDeliveryConfirmation(event: IEMessaging) {
-        //
+        const senderID = event.sender.id;
+        const recipientID = event.recipient.id;
+        const delivery = event.delivery;
+        const messageIDs = delivery.mids;
+        const watermark = delivery.watermark;
+
+        if (messageIDs) {
+            messageIDs.forEach((messageID) => {
+                console.log('Received delivery confirmation for message ID: %s',
+                    messageID);
+            });
+        }
+
+        console.log('All message before %d were delivered.', watermark);
     }
 
     public async receivedPostback(event: IEMessaging) {
-        //
+        const senderID = event.sender.id;
+        const recipientID = event.recipient.id;
+        const timeOfPostback = event.timestamp;
+
+        // The 'payload' param is a developer-defined field which is set in a postback
+        // button for Structured Messages.
+        const payload = event.postback.payload;
+
+        switch (payload) {
+            default:
+                // unindentified payload
+                this.messengerApp.sendTextMessage(senderID, "I'm not sure what you want. Can you be more specific?");
+                break;
+
+        }
+
+        console.log("Received postback for user %d and page %d with payload '%s' " +
+            'at %d', senderID, recipientID, payload, timeOfPostback);
     }
 
     public async receivedMessageRead(event: IEMessaging) {
-        //
+        const senderID = event.sender.id;
+        const recipientID = event.recipient.id;
+
+        // All messages before watermark (a timestamp) or sequence have been seen.
+        const watermark = event.read.watermark;
+
+        console.log('Received message read event for watermark %d and sequence ' +
+            'number %d', watermark);
     }
 
-    public receivedAccountLink(event: IEMessaging) {
-        //
+    public async receivedAccountLink(event: IEMessaging) {
+        const senderID = event.sender.id;
+        const recipientID = event.recipient.id;
+
+        const status = event.account_linking.status;
+        const authCode = event.account_linking.authorization_code;
+
+        console.log('Received account link event with for user %d with status %s ' +
+            'and auth code %s ', senderID, status, authCode);
     }
 
     private handleDialogflowResponse(senderID: string, response: QueryResult) {
@@ -215,12 +281,22 @@ class ChatBotController implements IChatBot {
         this.messengerApp.sendTextMessage(senderID, 'Attachment received. Thank you.');
     }
 
-    private handleDialogflowAction(senderID: string,
-                                   action: string,
-                                   messages: Message[],
-                                   contexts: Context[],
-                                   parameters: any) {
+    private async handleDialogflowAction(senderID: string,
+                                         action: string,
+                                         messages: Message[],
+                                         contexts: Context[],
+                                         parameters: any) {
         switch (action) {
+            case 'GET_STARTED' :
+                this.messengerApp.greetUserText(senderID)
+                .then(() => {
+                    this.handleMessages(senderID, messages);
+                })
+                .catch((err) => {
+                    throw err;
+                });
+
+                break;
             default:
                 this.handleMessages(senderID, messages);
         }

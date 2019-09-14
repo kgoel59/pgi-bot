@@ -4,9 +4,13 @@ import fbkey from '../config/messenger.json';
 
 import { IncomingMessage, ServerResponse } from 'http';
 import { IMessengerApp } from '../types/IMessengerApp';
-import { ISElement, ISend, ISQuickReply } from '../types/IMessengerSend';
+import { ISButton, ISElement, ISend, ISQuickReply } from '../types/IMessengerSend';
+
+import { IUser } from '../models/user.model.js';
+import UserController from './user.controller';
 
 class MessengerController implements IMessengerApp {
+    public users: Map<string, IUser> = new Map();
 
     public verifyWebHook(mode: string, verifytoken: string): boolean {
         if (mode === 'subscribe' && verifytoken === fbkey.fb_verify_token) {
@@ -32,6 +36,52 @@ class MessengerController implements IMessengerApp {
             if (signatureHash !== expectedHash) {
                 throw new Error("Couldn't validate the request signature.");
             }
+        }
+    }
+
+    public async getUser(userId: string) {
+
+        let user = await UserController.GetUser(userId);
+        if (user !== null) {
+            return user;
+        } else {
+            request({
+                uri: `https://graph.facebook.com/v2.7/${userId}`,
+                qs: {
+                    access_token: fbkey.fb_page_token,
+                },
+            }, async (error, response, body) => {
+                if (!error && response.statusCode === 200) {
+
+                    const fbuser = JSON.parse(body);
+
+                    if (fbuser.first_name) {
+                        user = await UserController
+                                    .CreateUser(fbuser.id, fbuser.first_name, fbuser.last_name, fbuser.profile_pic);
+                        return user;
+                    } else {
+                        console.log('Cannot get data for fb user with id', userId);
+                    }
+                } else {
+                    console.error(error);
+                }
+
+            });
+    }
+    }
+
+    public async greetUserText(userId: string) {
+        let user = this.users.get(userId);
+        if (!user) {
+            user = await this.getUser(userId);
+            this.users.set(userId, user);
+        }
+
+        if (user.firstName) {
+        return new Promise((resolve) => {
+            this.sendTextMessage(userId, 'Welcome ' + user.firstName);
+            this.resolveAfterXSeconds(1).then(() => resolve());
+        });
         }
     }
 
@@ -153,6 +203,25 @@ class MessengerController implements IMessengerApp {
         this.callSendAPI(messageData);
     }
 
+    public sendButtonMessage(recipientId: string, text: string, buttons: ISButton[]) {
+        const messageData = {
+            recipient: {
+                id: recipientId,
+            },
+            message: {
+                attachment: {
+                    type: 'template',
+                    payload: {
+                        template_type: 'button',
+                        text,
+                        buttons,
+                    },
+                },
+            },
+        };
+        this.callSendAPI(messageData);
+    }
+
     public sendTypingOn(recipientId: string) {
         const messageData = {
             recipient: {
@@ -170,6 +239,29 @@ class MessengerController implements IMessengerApp {
                 id: recipientId,
             },
             sender_action: 'typing_off',
+        };
+
+        this.callSendAPI(messageData);
+    }
+
+    public sendAccountLinking(recipientId: string) {
+        const messageData = {
+            recipient: {
+                id: recipientId,
+            },
+            message: {
+                attachment: {
+                    type: 'template',
+                    payload: {
+                        template_type: 'button',
+                        text: 'Welcome. Link your account.',
+                        buttons: [{
+                            type: 'account_link',
+                            url: fbkey.server_url + '/authorize',
+                        }],
+                    },
+                },
+            },
         };
 
         this.callSendAPI(messageData);
@@ -199,6 +291,14 @@ class MessengerController implements IMessengerApp {
             } else {
                 console.error('Failed calling Send API', response.statusCode, response.statusMessage, body.error);
             }
+        });
+    }
+
+    private async resolveAfterXSeconds(x: number) {
+        return new Promise((resolve: (x: number) => void) => {
+            setTimeout(() => {
+                resolve(x);
+            }, x * 1000);
         });
     }
 }

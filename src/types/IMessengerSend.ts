@@ -11,7 +11,7 @@ export interface ISQuickReply {
 
 export interface ISButton {
     type: string;
-    title: string;
+    title?: string;
     payload?: string;
     url?: string;
 }
@@ -25,7 +25,10 @@ export interface ISElement {
 }
 
 export interface ISPayload {
+    template_type?: string;
+    text?: string;
     url?: string;
+    buttons?: ISButton[];
     image_aspect_ratio?: string;
     elements?: ISElement[];
 }

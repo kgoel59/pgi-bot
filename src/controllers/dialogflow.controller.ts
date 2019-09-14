@@ -26,12 +26,16 @@ class DialogflowController implements IDialogflowApp {
         this.sessionIds = new Map();
     }
 
-    public async sendToDialogflow(senderID: string, messageText: string, params?: string)
-    : Promise<dialogflow.QueryResult> {
-
+    public setSession(senderID: string) {
         if (!this.sessionIds.has(senderID)) {
             this.sessionIds.set(senderID, uuid.v1());
         }
+    }
+
+    public async sendToDialogflow(senderID: string, messageText: string, params?: string)
+    : Promise<dialogflow.QueryResult> {
+
+        this.setSession(senderID);
 
         const sessionPath = this.sessionClient.sessionPath(
             googlekey.project_id,
