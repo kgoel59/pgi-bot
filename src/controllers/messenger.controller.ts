@@ -1,6 +1,5 @@
 import crypto from 'crypto';
 import request from 'request';
-import fbkey from '../config/messenger.json';
 
 import { IncomingMessage, ServerResponse } from 'http';
 import { IMessengerApp } from '../types/IMessengerApp';
@@ -8,6 +7,9 @@ import { ISButton, ISElement, ISend, ISQuickReply } from '../types/IMessengerSen
 
 import { IUser } from '../models/user.model.js';
 import UserController from './user.controller';
+
+import fbkey from '../config/messenger.json';
+import serverkey from '../config/server.json';
 
 class MessengerController implements IMessengerApp {
     public users: Map<string, IUser> = new Map();
@@ -67,7 +69,15 @@ class MessengerController implements IMessengerApp {
                 }
 
             });
+        }
     }
+
+    public async resolveAfterXSeconds(x: number) {
+        return new Promise((resolve: (x: number) => void) => {
+            setTimeout(() => {
+                resolve(x);
+            }, x * 1000);
+        });
     }
 
     public async greetUserText(userId: string) {
@@ -257,7 +267,7 @@ class MessengerController implements IMessengerApp {
                         text: 'Welcome. Link your account.',
                         buttons: [{
                             type: 'account_link',
-                            url: fbkey.server_url + '/authorize',
+                            url: serverkey.server_url + '/authorize',
                         }],
                     },
                 },
@@ -291,14 +301,6 @@ class MessengerController implements IMessengerApp {
             } else {
                 console.error('Failed calling Send API', response.statusCode, response.statusMessage, body.error);
             }
-        });
-    }
-
-    private async resolveAfterXSeconds(x: number) {
-        return new Promise((resolve: (x: number) => void) => {
-            setTimeout(() => {
-                resolve(x);
-            }, x * 1000);
         });
     }
 }

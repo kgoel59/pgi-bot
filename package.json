@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && cp -r ./src/public/ ./dist",
     "dev": "tsc --watch",
     "watch": "nodemon dist",
     "start": "node dist"

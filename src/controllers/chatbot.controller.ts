@@ -9,6 +9,10 @@ import { IMessengerApp } from '../types/IMessengerApp';
 import { IEAttachment, IEMessaging, IEQuickReply } from '../types/IMessengerEvent';
 import { ISButton, ISElement, ISQuickReply } from '../types/IMessengerSend';
 
+import { IDepartment } from '../models/department.model';
+import DepartmentController from './department.controller';
+
+import serverkey from '../config/server.json';
 
 class ChatBotController implements IChatBot {
 
@@ -212,7 +216,7 @@ class ChatBotController implements IChatBot {
                     const reply = {
                         content_type: 'text',
                         title: text,
-                        payload: text,
+                        payload: JSON.stringify({qaction: text}),
                     };
                     replies.push(reply);
                 });
@@ -260,12 +264,24 @@ class ChatBotController implements IChatBot {
         this.messengerApp.sendGenericMessage(senderID, elements);
     }
 
-    private handleQuickReply(senderID: string, quickReply: IEQuickReply, messageId: string) {
+    // quick action
+
+    private async handleQuickReply(senderID: string, quickReply: IEQuickReply, messageId: string) {
         const quickReplyPayload = quickReply.payload;
         console.log('Quick reply for message %s with payload %s', messageId, quickReplyPayload);
 
-        // send payload to dialogflow
-        this.dialogflowApp.sendToDialogflow(senderID, quickReplyPayload);
+        const qact = JSON.parse(quickReplyPayload);
+        switch (qact.qaction) {
+            case 'depInfo' :
+                this.SendDepartmentCard(senderID, qact.id);
+                await this.messengerApp.resolveAfterXSeconds(2);
+                this.SendDepartmentsQuickReply(senderID);
+                break;
+            default:
+                // send payload to dialogflow
+                const response = await this.dialogflowApp.sendToDialogflow(senderID, qact.qaction);
+                this.handleDialogflowResponse(senderID, response);
+        }
     }
 
     private handleEcho(messageId: string, appId: number, metadata: string) {
@@ -281,12 +297,15 @@ class ChatBotController implements IChatBot {
         this.messengerApp.sendTextMessage(senderID, 'Attachment received. Thank you.');
     }
 
+    // Main Action logic
+
     private async handleDialogflowAction(senderID: string,
                                          action: string,
                                          messages: Message[],
                                          contexts: Context[],
                                          parameters: any) {
         switch (action) {
+
             case 'GET_STARTED' :
                 this.messengerApp.greetUserText(senderID)
                 .then(() => {
@@ -295,11 +314,58 @@ class ChatBotController implements IChatBot {
                 .catch((err) => {
                     throw err;
                 });
-
                 break;
+
+            case 'GET_DEPARTMENTS' :
+                this.SendDepartmentsQuickReply(senderID);
+                break;
+
             default:
                 this.handleMessages(senderID, messages);
         }
+    }
+
+
+    // facebook logic
+
+    private async SendDepartmentsQuickReply(senderID: string) {
+        const departments = await DepartmentController.GetDepartments();
+
+        const replies: ISQuickReply[] = new Array();
+
+        for ( const department of departments) {
+            const reply: ISQuickReply = {
+                content_type: 'text',
+                title: department.name,
+                payload: JSON.stringify({qaction: 'depInfo', id: department._id}),
+            };
+            replies.push(reply);
+        }
+        this.messengerApp.sendQuickReply(senderID, 'Departments', replies);
+    }
+
+    private async SendDepartmentCard(senderID: string, depID: string) {
+        const department = await DepartmentController.GetDepartmentByID(depID);
+
+        const elements: ISElement[] = new Array();
+        const element: ISElement = {
+            title: department.name,
+            subtitle: department.info,
+            image_url: `${serverkey.server_url}/${department.pic}`,
+            default_action: {
+                type: 'web_url',
+                url: department.more,
+                webview_height_ratio: 'tall',
+            },
+            buttons: [{
+                type: 'web_url',
+                url: department.more,
+                title: 'Read More',
+            }],
+        };
+        elements.push(element);
+
+        this.messengerApp.sendGenericMessage(senderID, elements);
     }
 }
 

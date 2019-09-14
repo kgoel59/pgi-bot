@@ -7,8 +7,9 @@ export interface IMessengerApp {
     verifyWebHook: (mode: string, verifytoken: string) => boolean;
     verifyRequestSignature: (req: IncomingMessage, res: ServerResponse, buf: Buffer) => void;
     callSendAPI: (messageData: ISend) => void;
-    greetUserText: (userId: string)  => Promise<unknown>;
+    greetUserText: (userId: string)  => Promise<any>;
     getUser: (userId: string) => Promise<IUser>;
+    resolveAfterXSeconds: (x: number) => Promise<any>;
     sendTextMessage: (recipientId: string, text: string) => void;
     sendImageMessage: (recipientId: string, imageUrl: string) => void;
     sendAudioMessage: (recipientId: string, audioUrl: string) => void;

@@ -16,6 +16,10 @@ class App {
         this.mountRoutes(params);
     }
 
+    public setStatic(path: string) {
+        this.express.use(express.static(path));
+    }
+
     public connectDB(dbHost: string, dbUser: string, dbPass: string): void {
         connect(dbHost, dbUser, dbPass);
     }
