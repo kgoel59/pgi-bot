@@ -1,4 +1,7 @@
 import Department, { ICreateDepartment, IDepartment } from '../models/department.model';
+import { IDoctor } from '../models/doctor.model';
+
+import DoctorController from './doctor.controller';
 
 async function CreateDepartment( name: string,
                                  pic: string,
@@ -40,8 +43,21 @@ async function GetDepartmentByID(id: string): Promise<IDepartment> {
         });
 }
 
+async function GetDepDoctors(id: string): Promise<IDoctor[]> {
+    const doctors: IDoctor[] = new Array();
+    const department = await GetDepartmentByID(id);
+
+    for (const doctorId of department.doctors) {
+        const doctor = await DoctorController.GetDoctorByID(doctorId);
+        doctors.push(doctor);
+    }
+
+    return doctors;
+}
+
 export default {
     CreateDepartment,
     GetDepartments,
     GetDepartmentByID,
+    GetDepDoctors,
 };

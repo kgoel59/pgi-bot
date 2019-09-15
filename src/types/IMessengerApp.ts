@@ -1,5 +1,5 @@
 import { IncomingMessage, ServerResponse } from 'http';
-import { ISElement, ISend, ISQuickReply } from 'IMessengerSend';
+import { ISButton, ISElement, ISend, ISQuickReply } from 'IMessengerSend';
 import { IUser } from '../models/user.model';
 
 export interface IMessengerApp {
@@ -16,6 +16,7 @@ export interface IMessengerApp {
     sendVideoMessage: (recipientId: string, videoUrl: string) => void;
     sendFileMessage: (recipientId: string, fileUrl: string) => void;
     sendGenericMessage: (recipientId: string, elements: ISElement[]) => void;
+    sendButtonMessage: (recipientId: string, text: string, buttons: ISButton[]) => void;
     sendQuickReply: (recipientId: string, text: string, replies: ISQuickReply[], metadata?: string) => void;
     sendAccountLinking: (recipientId: string) => void;
     sendTypingOn: (recipientId: string) => void;

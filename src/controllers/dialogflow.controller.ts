@@ -1,4 +1,4 @@
-import dialogflow from 'dialogflow';
+import dialogflow, { QueryResult } from 'dialogflow';
 import uuid from 'uuid';
 import googlekey from '../config/dialog.json';
 
@@ -63,6 +63,31 @@ class DialogflowController implements IDialogflowApp {
         .catch((err) => {
             throw err;
         });
+    }
+
+
+    public sendEventToDialogFlow(senderID: string, event: string, params: any): Promise<QueryResult> {
+        const sessionPath = this.sessionClient.sessionPath(googlekey.project_id, this.sessionIds.get(senderID));
+        const request = {
+            session: sessionPath,
+            queryInput: {
+                event: {
+                    name: event,
+                    parameters: params,
+                    languageCode: this.languageCode,
+                },
+            },
+        };
+
+
+        return this.sessionClient.detectIntent(request)
+        .then((responses: dialogflow.DetectIntentResponse[]) => {
+            return responses[0].queryResult;
+        })
+        .catch((err) => {
+            throw err;
+        });
+
     }
 }
 
