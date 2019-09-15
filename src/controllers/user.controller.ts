@@ -1,4 +1,7 @@
+import { IAppointment } from '../models/appointment.model';
 import User, { ICreateUser, IUser } from '../models/user.model';
+
+import AppointmentController from '../controllers/appointment.controller';
 
 async function CreateUser( fbId: string,
                            firstName: string,
@@ -29,7 +32,21 @@ async function GetUser(fbId: string): Promise<IUser> {
         });
 }
 
+async function AddAppointment(user: IUser, name: string, phone: number): Promise<IAppointment> {
+    const appointment = await AppointmentController.CreateAppointment(name, phone);
+    const appointments = user.appointments;
+    appointments.push(appointment._id);
+
+    return User.findByIdAndUpdate(user._id, {appointments})
+    .then(() => {
+        return appointment;
+    }).catch((err) => {
+        throw err;
+    });
+}
+
 export default {
     CreateUser,
     GetUser,
+    AddAppointment,
 };

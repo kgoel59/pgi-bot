@@ -16,11 +16,14 @@ import DepartmentController from './department.controller';
 import DoctorController from './doctor.controller';
 
 import serverkey from '../config/server.json';
+import UserController from './user.controller';
 
 class ChatBotController implements IChatBot {
 
     public dialogflowApp: IDialogflowApp;
     public messengerApp: IMessengerApp;
+
+    public appointments: Map<string, any> = new Map();
 
     constructor(express: Application, dialogflowApp: IDialogflowApp, messengerApp: IMessengerApp) {
         express.use(bodyParser.json({
@@ -348,12 +351,17 @@ class ChatBotController implements IChatBot {
             case 'GET_DEPARTMENTS' :
                 this.SendDepartmentsQuickReply(senderID, 'Departments');
                 break;
-
             case 'GET_DOCTORS':
                 this.SendDepartmentsMenu(senderID);
                 break;
             case 'GET_APPOINTMENT_DETAILS':
-                this.SaveAppointment(parameters);
+                this.GetAppointment(senderID, parameters);
+                this.handleMessages(senderID, messages);
+                break;
+            case 'SAVE_APPOINTMENT':
+                this.SaveAppointment(senderID);
+                this.handleMessages(senderID, messages);
+                break;
             default:
                 this.handleMessages(senderID, messages);
         }
@@ -378,8 +386,24 @@ class ChatBotController implements IChatBot {
         this.messengerApp.sendQuickReply(senderID, title, replies);
     }
 
-    private async SaveAppointment(parameters: any) {
-        console.log(parameters.fields);
+    private async GetAppointment(senderID: string, parameters: any) {
+        const field = parameters.fields;
+        const phone = field.phone.numberValue;
+        const name = field.name.structValue.fields.name.stringValue;
+        this.appointments.set(senderID, {
+            pname: name,
+            pphone: phone,
+        });
+    }
+
+    private async SaveAppointment(senderID: string) {
+        if (this.appointments.has(senderID)) {
+            const appointment = this.appointments.get(senderID);
+            if (appointment.pname !== '' && appointment.pphone !== '') {
+            const user = await this.messengerApp.getUser(senderID);
+            UserController.AddAppointment(user, appointment.pname, appointment.pphone);
+            }
+        }
     }
 
     private async SendDepartmentsMenu(senderID: string) {

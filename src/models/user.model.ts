@@ -10,6 +10,7 @@ export const UserSchema = new Schema({
         report: String,
         cost: Number,
     }],
+    appointments: [Schema.Types.ObjectId],
 });
 
 
@@ -25,6 +26,7 @@ export interface ICreateUser {
     lastName: string;
     profilePic: string;
     diagnosticTest?: [IUserTests];
+    appointments?: string[];
 }
 
 export interface IUser extends Document, ICreateUser {
