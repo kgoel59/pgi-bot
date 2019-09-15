@@ -13,6 +13,7 @@ export interface ISButton {
     type: string;
     title?: string;
     payload?: string;
+    webview_height_ratio?: string;
     url?: string;
 }
 

@@ -275,7 +275,7 @@ class ChatBotController implements IChatBot {
             case 'depInfo' :
                 this.SendDepartmentCard(senderID, qact.id);
                 await this.messengerApp.resolveAfterXSeconds(2);
-                this.SendDepartmentsQuickReply(senderID);
+                this.SendDepartmentsQuickReply(senderID, 'Other Departments');
                 break;
             default:
                 // send payload to dialogflow
@@ -317,7 +317,11 @@ class ChatBotController implements IChatBot {
                 break;
 
             case 'GET_DEPARTMENTS' :
-                this.SendDepartmentsQuickReply(senderID);
+                this.SendDepartmentsQuickReply(senderID, 'Departments');
+                break;
+
+            case 'GET_DOCTORS':
+                this.SendDepartmentsMenu(senderID);
                 break;
 
             default:
@@ -328,7 +332,7 @@ class ChatBotController implements IChatBot {
 
     // facebook logic
 
-    private async SendDepartmentsQuickReply(senderID: string) {
+    private async SendDepartmentsQuickReply(senderID: string, title: string) {
         const departments = await DepartmentController.GetDepartments();
 
         const replies: ISQuickReply[] = new Array();
@@ -341,7 +345,29 @@ class ChatBotController implements IChatBot {
             };
             replies.push(reply);
         }
-        this.messengerApp.sendQuickReply(senderID, 'Departments', replies);
+        this.messengerApp.sendQuickReply(senderID, title, replies);
+    }
+
+    private async SendDepartmentsMenu(senderID: string) {
+        const departments = await DepartmentController.GetDepartments();
+
+        const elements: ISElement[] = new Array();
+        for (const department of departments) {
+            const element: ISElement = {
+                title: department.name,
+                subtitle: `Get doctors for ${department.name}`,
+                image_url: `${serverkey.server_url}/${department.pic}`,
+                buttons: [{
+                    title: 'View Doctors',
+                    type: 'postback',
+                    payload: JSON.stringify({test: 'test'}),
+                }],
+            };
+            elements.push(element);
+        }
+
+        this.messengerApp.sendGenericMessage(senderID, elements);
+
     }
 
     private async SendDepartmentCard(senderID: string, depID: string) {
