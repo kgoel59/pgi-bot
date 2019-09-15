@@ -55,9 +55,20 @@ async function GetDepDoctors(id: string): Promise<IDoctor[]> {
     return doctors;
 }
 
+async function GetDepartmentByName(name: string): Promise<IDepartment> {
+    name = name.charAt(0).toUpperCase() + name.slice(1);
+    return Department.findOne({name})
+    .then((data) => {
+        return data;
+    }).catch((err) => {
+        throw err;
+    });
+}
+
 export default {
     CreateDepartment,
     GetDepartments,
     GetDepartmentByID,
     GetDepDoctors,
+    GetDepartmentByName,
 };

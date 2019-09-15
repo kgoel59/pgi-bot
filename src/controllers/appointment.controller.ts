@@ -16,6 +16,15 @@ async function CreateAppointment(name: string,
         });
 }
 
+async function UpdateAppointment(id: string, appointment: any) {
+    return Appointment.findByIdAndUpdate(id, appointment)
+    .then((data) => {
+        return data;
+    }).catch((error) => {
+        throw error;
+    });
+}
+
 
 async function GetAppointment(Id: string): Promise<IAppointment> {
     return Appointment.findOne({Id})
@@ -29,5 +38,6 @@ async function GetAppointment(Id: string): Promise<IAppointment> {
 
 export default {
     CreateAppointment,
+    UpdateAppointment,
     GetAppointment,
 };

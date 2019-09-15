@@ -12,6 +12,7 @@ import { ISButton, ISElement, ISQuickReply } from '../types/IMessengerSend';
 import { IDepartment } from '../models/department.model';
 import { IDoctor } from '../models/doctor.model';
 
+import AppointmentController from './appointment.controller';
 import DepartmentController from './department.controller';
 import DoctorController from './doctor.controller';
 
@@ -292,8 +293,15 @@ class ChatBotController implements IChatBot {
                 this.SendDepartmentsQuickReply(senderID, 'Other Departments');
                 break;
             case 'bookapp' :
-                const eresponse = await this.dialogflowApp.sendEventToDialogFlow(senderID, 'BOOK', {});
-                this.handleDialogflowResponse(senderID, eresponse);
+                if (qact.id) {
+                    AppointmentController.UpdateAppointment(qact.id, {doctor: qact.doc});
+                    this.appointments.delete(senderID);
+                    this.messengerApp.sendTextMessage(senderID, 'Thank you your appointment has been done');
+                } else {
+                    this.appointments.set(senderID, {doctor: qact.doc});
+                    const eresponse = await this.dialogflowApp.sendEventToDialogFlow(senderID, 'BOOK', {});
+                    this.handleDialogflowResponse(senderID, eresponse);
+                }
                 break;
             case 'getdoccontact':
                 const cdoctor = await DoctorController.GetDoctorByID(qact.id);
@@ -355,12 +363,13 @@ class ChatBotController implements IChatBot {
                 this.SendDepartmentsMenu(senderID);
                 break;
             case 'GET_APPOINTMENT_DETAILS':
-                this.GetAppointment(senderID, parameters);
-                this.handleMessages(senderID, messages);
+                this.GetAppointment(senderID, parameters, messages);
                 break;
             case 'SAVE_APPOINTMENT':
-                this.SaveAppointment(senderID);
-                this.handleMessages(senderID, messages);
+                this.SaveAppointment(senderID, messages);
+                break;
+            case 'GET_CLASSIFIED_DEPARTMENT':
+                this.SendPredictedDepartment(senderID, parameters);
                 break;
             default:
                 this.handleMessages(senderID, messages);
@@ -386,23 +395,61 @@ class ChatBotController implements IChatBot {
         this.messengerApp.sendQuickReply(senderID, title, replies);
     }
 
-    private async GetAppointment(senderID: string, parameters: any) {
+    private async GetAppointment(senderID: string, parameters: any, messages: Message[]) {
         const field = parameters.fields;
         const phone = field.phone.numberValue;
         const name = field.name.structValue.fields.name.stringValue;
+        let mdoctor = null;
+        if (this.appointments.has(senderID)) {
+            mdoctor = this.appointments.get(senderID).doctor;
+        }
         this.appointments.set(senderID, {
             pname: name,
             pphone: phone,
+            doctor: mdoctor,
         });
+
+        if (phone && name ) {
+            this.messengerApp.sendTextMessage(senderID, `Name: ${name}\n Phone: ${phone}\n Do you confirm?`);
+        } else {
+            this.handleMessages(senderID, messages);
+        }
     }
 
-    private async SaveAppointment(senderID: string) {
+    private async SaveAppointment(senderID: string, messages: Message[]) {
         if (this.appointments.has(senderID)) {
             const appointment = this.appointments.get(senderID);
             if (appointment.pname !== '' && appointment.pphone !== '') {
-            const user = await this.messengerApp.getUser(senderID);
-            UserController.AddAppointment(user, appointment.pname, appointment.pphone);
+                const user = await this.messengerApp.getUser(senderID);
+                const appt = await UserController.AddAppointment(user, appointment.pname, appointment.pphone);
+                if (appointment.doctor) {
+                    const doctor = await DoctorController.GetDoctorByID(appointment.doctor);
+                    this.messengerApp.sendTextMessage(senderID, `Your appointment with doctor ${doctor.name} has been done`);
+                    AppointmentController.UpdateAppointment(appt._id, {doctor: doctor._id});
+                    this.appointments.delete(senderID);
+                } else {
+                    this.appointments.set(senderID, {id: appt._id});
+                    this.handleMessages(senderID, messages);
+                }
             }
+        }
+    }
+
+    private async SendPredictedDepartment(senderID: string, parameters: any) {
+        const cdepartment = parameters.fields.department.listValue.values[0].stringValue;
+        this.messengerApp.sendTextMessage(senderID, `These symptoms feel like of ${cdepartment}`);
+        const department = await DepartmentController.GetDepartmentByName(cdepartment);
+
+        if (department !== null) {
+            const appointment = this.appointments.get(senderID);
+            this.SendDepartmentCard(senderID, department._id);
+            AppointmentController.UpdateAppointment(appointment.id, {department: cdepartment});
+            await this.messengerApp.resolveAfterXSeconds(1);
+            this.sendDoctors(senderID, department._id);
+        } else {
+            this.messengerApp.sendTextMessage(senderID, `Can you give some more detail ?`);
+            const responses = await this.dialogflowApp.sendEventToDialogFlow(senderID, 'SYMPTOM', {});
+            this.handleDialogflowResponse(senderID, responses);
         }
     }
 
@@ -483,10 +530,17 @@ class ChatBotController implements IChatBot {
 
     private async SendDoctorQuickReply(senderID: string, docID: string) {
         const replies: ISQuickReply[] = new Array();
+        let bookId = null;
+        if (this.appointments.has(senderID)) {
+            const appointment = this.appointments.get(senderID);
+            if (appointment.id) {
+                bookId = appointment.id;
+            }
+        }
         const bookreply: ISQuickReply = {
             content_type: 'text',
             title: 'Book an appointment',
-            payload: JSON.stringify({qaction: 'bookapp'}),
+            payload: JSON.stringify({qaction: 'bookapp', id: bookId, doc: docID}),
         };
 
         const contactreply: ISQuickReply = {
